@@ -1,7 +1,6 @@
-use rand::distr::{
-    Distribution,
-    weighted::{Error, WeightedIndex},
-};
+use std::{io::Write, time::Duration};
+
+use rand::distr::{Distribution, weighted::WeightedIndex};
 
 const COST_PER_ATTEMPT: u64 = 200;
 
@@ -28,7 +27,7 @@ const RARITIES: [Rarity; 5] = [
     Rarity::Ancient,
 ];
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = std::env::args().collect();
 
     let limit = args
@@ -55,13 +54,30 @@ fn main() -> Result<(), Error> {
     while attempts < limit {
         attempts += 1;
 
+        print!("Attempt {attempts} . . .");
+        std::io::stdout().flush()?;
+        std::thread::sleep(Duration::from_secs(1));
+
         match RARITIES[dist.sample(&mut rng)] {
-            Rarity::Uncommon => uncommon_count += 1_u64,
-            Rarity::Rare => rare_count += 1_u64,
-            Rarity::Epic => epic_count += 1_u64,
-            Rarity::Legendary => legendary_count += 1_u64,
+            Rarity::Uncommon => {
+                uncommon_count += 1_u64;
+                println!(" Uncommon!");
+            }
+            Rarity::Rare => {
+                rare_count += 1_u64;
+                println!(" Rare!");
+            }
+            Rarity::Epic => {
+                epic_count += 1_u64;
+                println!(" Epic!");
+            }
+            Rarity::Legendary => {
+                legendary_count += 1_u64;
+                println!(" Legendary!");
+            }
             Rarity::Ancient => {
                 ancient_count += 1_u64;
+                println!(" Ancient!");
                 break;
             }
         }
