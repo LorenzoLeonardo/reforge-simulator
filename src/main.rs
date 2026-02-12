@@ -19,20 +19,12 @@ enum Rarity {
     Ancient,
 }
 
-const RARITIES: [Rarity; 5] = [
-    Rarity::Uncommon,
-    Rarity::Rare,
-    Rarity::Epic,
-    Rarity::Legendary,
-    Rarity::Ancient,
-];
-
-pub const WEIGHTS: [u64; 5] = [
-    WEIGHT_UNCOMMON,
-    WEIGHT_RARE,
-    WEIGHT_EPIC,
-    WEIGHT_LEGENDARY,
-    WEIGHT_ANCIENT,
+const RARITY_WEIGHTS: [(Rarity, u64); 5] = [
+    (Rarity::Uncommon, WEIGHT_UNCOMMON),
+    (Rarity::Rare, WEIGHT_RARE),
+    (Rarity::Epic, WEIGHT_EPIC),
+    (Rarity::Legendary, WEIGHT_LEGENDARY),
+    (Rarity::Ancient, WEIGHT_ANCIENT),
 ];
 
 struct SimulationResult {
@@ -45,7 +37,8 @@ struct SimulationResult {
 }
 
 fn build_distribution() -> Result<WeightedIndex<u64>, Box<dyn Error>> {
-    Ok(WeightedIndex::new(WEIGHTS)?)
+    let weights: Vec<u64> = RARITY_WEIGHTS.iter().map(|(_, w)| *w).collect();
+    Ok(WeightedIndex::new(weights)?)
 }
 
 fn run_simulation(limit: u64) -> Result<SimulationResult, Box<dyn Error>> {
@@ -68,7 +61,7 @@ fn run_simulation(limit: u64) -> Result<SimulationResult, Box<dyn Error>> {
         std::io::stdout().flush()?;
         std::thread::sleep(Duration::from_millis(500));
 
-        match RARITIES[dist.sample(&mut rng)] {
+        match RARITY_WEIGHTS[dist.sample(&mut rng)].0 {
             Rarity::Uncommon => {
                 result.uncommon += 1;
                 println!(" Uncommon!");
