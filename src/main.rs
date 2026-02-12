@@ -1,6 +1,5 @@
-use std::{io::Write, time::Duration};
+use std::{error::Error, io::Write, time::Duration};
 
-use rand::distr::weighted::Error;
 use rand::distr::{Distribution, weighted::WeightedIndex};
 
 const COST_PER_ATTEMPT: u64 = 200;
@@ -45,11 +44,11 @@ struct SimulationResult {
     ancient: u64,
 }
 
-fn build_distribution() -> Result<WeightedIndex<u64>, Error> {
-    WeightedIndex::new(WEIGHTS)
+fn build_distribution() -> Result<WeightedIndex<u64>, Box<dyn Error>> {
+    Ok(WeightedIndex::new(WEIGHTS)?)
 }
 
-fn run_simulation(limit: u64) -> Result<SimulationResult, Error> {
+fn run_simulation(limit: u64) -> Result<SimulationResult, Box<dyn Error>> {
     let mut rng = rand::rng();
     let dist = build_distribution()?;
 
@@ -66,8 +65,8 @@ fn run_simulation(limit: u64) -> Result<SimulationResult, Error> {
         result.attempts += 1;
 
         print!("Attempt {} . . .", result.attempts);
-        std::io::stdout().flush().unwrap();
-        std::thread::sleep(Duration::from_secs(1));
+        std::io::stdout().flush()?;
+        std::thread::sleep(Duration::from_millis(500));
 
         match RARITIES[dist.sample(&mut rng)] {
             Rarity::Uncommon => {
@@ -97,7 +96,7 @@ fn run_simulation(limit: u64) -> Result<SimulationResult, Error> {
     Ok(result)
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = std::env::args().collect();
 
     let limit = args
