@@ -1,4 +1,4 @@
-use std::{error::Error, io::Write, time::Duration};
+use std::{error::Error, io::Write};
 
 use rand::distr::{Distribution, weighted::WeightedIndex};
 
@@ -59,7 +59,6 @@ fn run_simulation(limit: u64) -> Result<SimulationResult, Box<dyn Error>> {
 
         print!("Attempt {} . . .", result.attempts);
         std::io::stdout().flush()?;
-        std::thread::sleep(Duration::from_millis(500));
 
         match RARITY_WEIGHTS[dist.sample(&mut rng)].0 {
             Rarity::Uncommon => {
@@ -95,7 +94,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let limit = args
         .get(1) // safely get index 1
         .and_then(|s| s.parse::<u64>().ok()) // try parse
-        .unwrap_or(10); // default to 10 if missing or invalid
+        .unwrap_or(1); // default to 1 if missing or invalid
 
     let result = run_simulation(limit)?;
 
