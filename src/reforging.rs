@@ -1,34 +1,96 @@
+//! # Reforging Module
+//!
+//! This module implements a reforging simulation system where items are randomly assigned
+//! different rarity tiers. The reforging system uses a luck mechanic that shifts probabilities
+//! towards higher rarities.
+//!
+//! ## Rarity Distribution
+//!
+//! - **Uncommon (53%)**: Most common outcome, reduced by luck
+//! - **Rare (30%)**: Less common than Uncommon
+//! - **Epic (12.5%)**: Rare outcome
+//! - **Legendary (4%)**: Very rare outcome
+//! - **Ancient (0.5%)**: Rarest outcome, increased by luck
+//!
+//! ## Luck System
+//!
+//! The luck parameter (0-530) shifts probabilities:
+//! - Decreases the chance of getting Uncommon items
+//! - Increases the chance of getting Ancient items
+//! - Does not affect Rare, Epic, or Legendary probabilities
+
 use std::{error::Error, io::Write};
 
 use rand::distr::Distribution;
 
 use crate::{ProbabilityDistribution, build_distribution};
 
-const PERCENT100: u64 = 1000; // Using 1000 to represent 100% for better precision
-const WEIGHT_UNCOMMON: u64 = 530; // Success rate 53% of 1000
-const WEIGHT_RARE: u64 = 300; // Success rate 30% of 1000
-const WEIGHT_EPIC: u64 = 125; // Success rate 12.5%  of 1000
-const WEIGHT_LEGENDARY: u64 = 40; // Success rate 4%  of 1000
-const WEIGHT_ANCIENT: u64 = 5; // Success rate 0.5% of 1000
+/// Represents 100% probability with 0.1% precision (1000 = 100%)
+const PERCENT100: u64 = 1000;
+/// Weight for Uncommon rarity: 53% base probability
+const WEIGHT_UNCOMMON: u64 = 530;
+/// Weight for Rare rarity: 30% probability
+const WEIGHT_RARE: u64 = 300;
+/// Weight for Epic rarity: 12.5% probability
+const WEIGHT_EPIC: u64 = 125;
+/// Weight for Legendary rarity: 4% probability
+const WEIGHT_LEGENDARY: u64 = 40;
+/// Weight for Ancient rarity: 0.5% base probability
+const WEIGHT_ANCIENT: u64 = 5;
 
+/// Enumeration of possible item rarity tiers in the reforging system.
+///
+/// Each rarity tier has an associated probability that determines how often items
+/// receive that rarity during a reforging simulation.
 #[derive(Debug)]
-pub(crate) enum Rarity {
+pub enum Rarity {
+    /// Uncommon rarity tier (53% base probability)
     Uncommon,
+    /// Rare rarity tier (30% probability)
     Rare,
+    /// Epic rarity tier (12.5% probability)
     Epic,
+    /// Legendary rarity tier (4% probability)
     Legendary,
+    /// Ancient rarity tier (0.5% base probability, increases with luck)
     Ancient,
 }
 
-pub(crate) struct ReforgeSimulationResult {
+/// Results from a reforging simulation.
+///
+/// This struct contains statistics about a completed reforging simulation,
+/// including the total number of attempts and the count of each rarity tier obtained.
+#[derive(Debug)]
+pub struct ReforgeSimulationResult {
+    /// Total number of reforging attempts made
     pub attempts: u64,
+    /// Count of Uncommon items obtained
     pub uncommon: u64,
+    /// Count of Rare items obtained
     pub rare: u64,
+    /// Count of Epic items obtained
     pub epic: u64,
+    /// Count of Legendary items obtained
     pub legendary: u64,
+    /// Count of Ancient items obtained
     pub ancient: u64,
 }
 
+/// Initializes the rarity weight distribution based on luck parameter.
+///
+/// Creates a weighted probability distribution for rarity tiers, adjusting probabilities
+/// according to the luck value. Higher luck values increase the likelihood of obtaining
+/// ancient (and rarer) items.
+///
+/// # Arguments
+///
+/// * `luck` - Luck value (0-530) that modifies probabilities. Each point of luck:
+///   - Decreases Uncommon weight by 1
+///   - Increases Ancient weight by 1
+///
+/// # Panics
+///
+/// Panics if the total weight does not equal exactly 1000.
 fn init_rarity_weights(luck: u64) -> Vec<(ProbabilityDistribution, u64)> {
     let weights = vec![
         (
@@ -63,6 +125,32 @@ fn init_rarity_weights(luck: u64) -> Vec<(ProbabilityDistribution, u64)> {
     weights
 }
 
+/// Executes a reforging simulation up to a specified limit or until an Ancient item is obtained.
+///
+/// This function simulates the reforging process by repeatedly drawing from a weighted probability
+/// distribution of rarity tiers. The simulation continues until either:
+/// - An Ancient item is obtained (simulation succeeds early)
+/// - The limit number of attempts is reached
+///
+/// # Arguments
+///
+/// * `limit` - Maximum number of reforging attempts to perform
+/// * `luck` - Luck value (0-530) that increases chances of rare items
+///
+/// # Returns
+///
+/// A [`Result`] containing [`ReforgeSimulationResult`] with final statistics, or a [`Box<dyn Error>`]
+/// if the probability distribution fails to build.
+///
+/// # Example
+///
+/// ```no_run
+/// use reforge_simulator::reforging;
+///
+/// let result = reforging::run_reforge_simulation(100, 0)?;
+/// println!("Got Ancient item in {} attempts", result.attempts);
+/// # Ok::<(), Box<dyn std::error::Error>>(())
+/// ```
 pub fn run_reforge_simulation(
     limit: u64,
     luck: u64,
