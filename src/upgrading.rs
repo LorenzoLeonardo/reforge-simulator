@@ -30,6 +30,42 @@ const ACCESSORIES_UPGRADE_RATES: [u64; 20] = [
     1,          // 19->20: 0.1%
 ];
 
+const NORMAL_SET_UPGRADE_RATES: [u64; 10] = [
+    PERCENT100, // +0 -> +1 : 100%
+    PERCENT100, // +1 -> +2 : 100%
+    700,        // +2 -> +3 : ~70%
+    500,        // +3 -> +4 : ~50%
+    400,        // +4 -> +5 : ~40%
+    300,        // +5 -> +6 : ~30%
+    200,        // +6 -> +7 : ~20%
+    100,        // +7 -> +8 : ~10%
+    50,         // +8 -> +9 : ~5%
+    20,         // +9 -> +10: ~2%
+];
+
+const BARUNA_UPGRADE_RATES: [u64; 20] = [
+    PERCENT100, // 0->1 : 100%
+    PERCENT100, // 1->2 : 100%
+    900,        // 2->3 : 90%
+    800,        // 3->4 : 80%
+    700,        // 4->5 : 70%
+    600,        // 5->6 : 60%
+    500,        // 6->7 : 50%
+    420,        // 7->8 : 42%
+    350,        // 8->9 : 35%
+    300,        // 9->10: 30%
+    250,        // 10->11: 25%
+    200,        // 11->12: 20%
+    150,        // 12->13: 15%
+    120,        // 13->14: 12%
+    90,         // 14->15: 9%
+    70,         // 15->16: 7%
+    50,         // 16->17: 5%
+    30,         // 17->18: 3%
+    20,         // 18->19: 2%
+    10,         // 19->20: 1%
+];
+
 #[derive(Debug)]
 pub(crate) enum Upgrade {
     Success,
@@ -41,15 +77,41 @@ pub(crate) struct UpgradeSimulationResult {
     pub current_level: u64,
 }
 
-fn get_upgrade_success_rate(current_level: u64) -> u64 {
-    if current_level >= 20 {
-        panic!("Cannot upgrade beyond level 20");
-    }
-    ACCESSORIES_UPGRADE_RATES[current_level as usize]
+#[derive(Debug, PartialEq, Eq, Hash)]
+pub(crate) enum ItemType {
+    Accessories,
+    Baruna,
+    Normal,
 }
 
-fn init_upgrade_weights(current_level: u64) -> Vec<(ProbabilityDistribution, u64)> {
-    let success_rate = get_upgrade_success_rate(current_level);
+impl ItemType {
+    pub fn level_cap(&self) -> u64 {
+        match self {
+            ItemType::Accessories => 20,
+            ItemType::Normal => 10,
+            ItemType::Baruna => 20,
+        }
+    }
+}
+
+fn get_upgrade_success_rate(current_level: u64, item_type: &ItemType) -> u64 {
+    let level_cap = item_type.level_cap();
+    if current_level >= level_cap {
+        panic!("Cannot upgrade beyond level {level_cap}");
+    }
+
+    match item_type {
+        ItemType::Accessories => ACCESSORIES_UPGRADE_RATES[current_level as usize],
+        ItemType::Normal => NORMAL_SET_UPGRADE_RATES[current_level as usize],
+        ItemType::Baruna => BARUNA_UPGRADE_RATES[current_level as usize],
+    }
+}
+
+fn init_upgrade_weights(
+    current_level: u64,
+    item_type: &ItemType,
+) -> Vec<(ProbabilityDistribution, u64)> {
+    let success_rate = get_upgrade_success_rate(current_level, item_type);
     let weights = vec![
         (
             ProbabilityDistribution::Upgrading(Upgrade::Success),
@@ -72,9 +134,10 @@ fn init_upgrade_weights(current_level: u64) -> Vec<(ProbabilityDistribution, u64
 }
 
 pub fn run_upgrade_simulation(
-    target_level: u64,
+    item_type: &ItemType,
 ) -> Result<UpgradeSimulationResult, Box<dyn Error>> {
     let mut rng = rand::rng();
+    let target_level = item_type.level_cap();
 
     let mut result = UpgradeSimulationResult {
         attempts: 0,
@@ -82,7 +145,7 @@ pub fn run_upgrade_simulation(
     };
 
     while result.current_level < target_level {
-        let weights = init_upgrade_weights(result.current_level);
+        let weights = init_upgrade_weights(result.current_level, item_type);
         let dist = build_distribution(&weights)?;
         result.attempts += 1;
 
@@ -91,7 +154,6 @@ pub fn run_upgrade_simulation(
             result.attempts, result.current_level
         );
         std::io::stdout().flush()?;
-        std::thread::sleep(std::time::Duration::from_millis(500)); // Simulate time delay for each attempt
         match weights[dist.sample(&mut rng)].0 {
             ProbabilityDistribution::Upgrading(Upgrade::Success) => {
                 result.current_level += 1;

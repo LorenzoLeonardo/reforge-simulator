@@ -5,7 +5,10 @@ use std::error::Error;
 
 use rand::distr::weighted::WeightedIndex;
 
-use crate::{reforging::Rarity, upgrading::Upgrade};
+use crate::{
+    reforging::Rarity,
+    upgrading::{ItemType, Upgrade},
+};
 
 #[derive(Debug)]
 pub(crate) enum ProbabilityDistribution {
@@ -39,10 +42,47 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Legendary: {}", result.legendary);
     println!("Ancient:   {}", result.ancient);
 
-    println!("\n--- Running Upgrade Simulation to Level 20 ---\n");
-    let upgrade_result = upgrading::run_upgrade_simulation(20)?;
-    println!("\n=== Upgrade Simulation Result ===");
+    println!(
+        "\n--- Running Upgrade Simulation for {:?} Items (Max Level {}) ---\n",
+        ItemType::Normal,
+        ItemType::Normal.level_cap()
+    );
+    let upgrade_result = upgrading::run_upgrade_simulation(&ItemType::Normal)?;
+    println!(
+        "\n=== {:?} ItemUpgrade Simulation Result ===",
+        ItemType::Normal
+    );
     println!("Final Item Level: {}", upgrade_result.current_level);
     println!("Total Upgrade Attempts: {}", upgrade_result.attempts);
+    println!();
+
+    println!(
+        "\n--- Running Upgrade Simulation for {:?} Items (Max Level {}) ---\n",
+        ItemType::Accessories,
+        ItemType::Accessories.level_cap()
+    );
+    let upgrade_result = upgrading::run_upgrade_simulation(&ItemType::Accessories)?;
+    println!(
+        "\n=== {:?} ItemUpgrade Simulation Result ===",
+        ItemType::Accessories
+    );
+    println!("Final Item Level: {}", upgrade_result.current_level);
+    println!("Total Upgrade Attempts: {}", upgrade_result.attempts);
+    println!();
+
+    println!(
+        "\n--- Running Upgrade Simulation for {:?} Items (Max Level {}) ---\n",
+        ItemType::Baruna,
+        ItemType::Baruna.level_cap()
+    );
+    let upgrade_result = upgrading::run_upgrade_simulation(&ItemType::Baruna)?;
+    println!(
+        "\n=== {:?} ItemUpgrade Simulation Result ===",
+        ItemType::Baruna
+    );
+    println!("Final Item Level: {}", upgrade_result.current_level);
+    println!("Total Upgrade Attempts: {}", upgrade_result.attempts);
+    println!();
+
     Ok(())
 }
